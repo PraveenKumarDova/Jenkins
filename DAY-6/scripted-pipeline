@@ -1,0 +1,126 @@
+Freestyle job
+Maven job
+
+NOTE: we can not customize the job using maven and free style[ EX: order of exexution]
+
+Create the pipeline project job
+===============================
+
+--> Pipeline scripts can be written in the groovy script.
+
+--> we can write in two ways
+   1. scripted way
+   2. declarative way
+
+
+NOTE: pls install stageview plug-in
+
+1. scripted way
+===============
+
+syntax:
+=======
+
+node //by default  built-in(master) node
+{
+
+//write code here.
+
+}
+
+step 1: create a pipeline job
+
+goto new item --> Enter an item name(demo-scripted-pipeline) --> pipeline --> ok
+
+step 2: get the code from github repository
+
+select pipeline-job--> configure --> scrool down to pipeline area --> click on pipeline syntax --> sample step --> git: Git
+
+   Repo url: 
+   branch:
+   credentials:
+   
+--> generate pipeline script
+
+
+
+node
+{
+   stage('checkout')
+   {
+   git branch: 'development', credentialsId: 'e5b73679-3105-4429-a5b4-b303fd9e35a0', url: 'https://github.com/kkeducation12345/maven-web-app-project-kk-funda.git'
+   }
+}
+
+
+step 3: 
+
+node
+{
+   def mavenHome=tool name: "maven 3.9.8"
+   stage('checkout')
+   {
+   git branch: 'development', credentialsId: 'e5b73679-3105-4429-a5b4-b303fd9e35a0', url: 'https://github.com/kkeducation12345/maven-web-app-project-kk-funda.git'
+   }
+   stage('build')
+   {
+  sh "${mavenHome}/bin/mvn clean package"
+   }
+  
+}
+
+
+step 4: execute the sonarqube report
+
+node
+{
+   def mavenHome=tool name: "maven 3.9.8"
+   stage('checkout')
+   {
+   git branch: 'development', credentialsId: 'e5b73679-3105-4429-a5b4-b303fd9e35a0', url: 'https://github.com/kkeducation12345/maven-web-app-project-kk-funda.git'
+   }
+   stage('build')
+   {
+  sh "${mavenHome}/bin/mvn clean package"
+   }
+  stage('SonarQubeReport')
+   {
+  sh "${mavenHome}/bin/mvn clean package sonar:sonar"
+   }
+  
+}
+
+
+step 5:  upload artifact into nexus
+
+node
+{
+   def mavenHome=tool name: "maven-3.9.8"
+   stage('checkout')
+   {
+   git branch: 'development', credentialsId: 'e5b73679-3105-4429-a5b4-b303fd9e35a0', url: 'https://github.com/kkeducation12345/maven-web-app-project-kk-funda.git'
+   }
+   stage('build')
+   {
+  sh "${mavenHome}/bin/mvn clean package"
+   }
+  stage('SonarQubeReport')
+   {
+  sh "${mavenHome}/bin/mvn clean package sonar:sonar"
+   }
+
+ stage('Uploadarifacttonexus')
+   {
+  sh "${mavenHome}/bin/mvn clean package sonar:sonar deploy"
+   }
+    stage('Deploy to Tomcat') {
+        echo "Deploying WAR file using curl..."
+
+        sh """
+            curl -u kkfunda:kkfunda \
+            --upload-file /var/lib/jenkins/workspace/jio-scripted-way-pipeline-develoment/target/maven-web-application.war \
+            "http://3.108.194.157:8080/manager/text/deploy?path=/maven-web-application&update=true"
+        """
+    }
+  
+}
